@@ -264,7 +264,20 @@ define Device/AP-DK04.1-C1
 	DEVICE_TITLE := QCA AP-DK04.1-C1
 endef
 
+define Device/Jalapeno
+	$(call Device/FitImage)
+	$(call Device/UbiFit)
+	DEVICE_DTS := qcom-ipq4019-ap.jalapeno-v2
+	KERNEL_LOADADDR := 0x80208000
+	KERNEL_INSTALL := 1
+	KERNEL_SIZE := 4048k
+	BLOCKSIZE := 128k
+	PAGESIZE := 2048
+	BOARD_NAME := Jalapeno
+	DEVICE_TITLE := Jalapeno
+endef
+
 TARGET_DEVICES += AP148 AP148-legacy C2600 D7800 DB149 EA8500 FRITZ4040 R7500 \
-		  R7500v2 R7800 NBG6817 VR2600v AP-DK04.1-C1
+		  R7500v2 R7800 NBG6817 VR2600v AP-DK04.1-C1 Jalapeno
 
 $(eval $(call BuildImage))

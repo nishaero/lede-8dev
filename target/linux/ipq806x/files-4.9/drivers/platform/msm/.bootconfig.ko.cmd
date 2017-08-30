@@ -1,0 +1,1 @@
+cmd_drivers/platform/msm/bootconfig.ko := arm-openwrt-linux-uclibcgnueabi-ld -EL -r  -T /home/mantas/SSD/build/atheros/qsdk/qca/src/linux-3.14/scripts/module-common.lds --build-id  -o drivers/platform/msm/bootconfig.ko drivers/platform/msm/bootconfig.o drivers/platform/msm/bootconfig.mod.o

@@ -17,34 +17,6 @@
 #include "qcom-ipq4019-ap.dk01.1.dtsi"
 
 / {
-	model = "Qualcomm Technologies, Inc. IPQ40xx/AP-Jalapeno";
+	model = "Qualcomm Technologies, Inc. IPQ40xx/AP-DK01.1-C1";
 
-	soc {
-		edma@c080000 {
-			status = "okay";
-			qcom,rx_head_buf_size = <8000>;
-			qcom,num_gmac = <2>;
-			gmac0 {
-				qcom,poll_required = <0>;
-				vlan_tag = <0 0x20>;
-			};
-			gmac1 {
-				qcom,poll_required = <0>;
-				vlan_tag = <0 0x1e>;
-			};
-		};
-
-		mdio@90000 {
-			status = "okay";
-		};
-
-		ess-switch@c000000 {
-			status = "okay";
-		};
-
-		ess-psgmii@98000 {
-			status = "okay";
-		};
-
-	};
 };

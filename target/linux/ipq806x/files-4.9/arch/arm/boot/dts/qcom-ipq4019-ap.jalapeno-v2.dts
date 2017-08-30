@@ -18,5 +18,4 @@
 
 / {
 	model = "Qualcomm Technologies, Inc. IPQ40xx/AP-Jalapeno-v2";
-
 };

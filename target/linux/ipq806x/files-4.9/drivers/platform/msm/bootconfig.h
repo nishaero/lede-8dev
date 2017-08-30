@@ -1,4 +1,5 @@
-/* Copyright (c) 2015, The Linux Foundation. All rights reserved.
+/*
+ * Copyright (c) 2015 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -11,40 +12,32 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *
  */
 
-#include "qcom-ipq4019-ap.dk01.1.dtsi"
+#ifndef _BOOTCONFIG_H_
+#define _BOOTCONFIG_H_
 
-/ {
-	model = "Qualcomm Technologies, Inc. IPQ40xx/AP-Jalapeno";
+#define BOOTCONFIG_PART_IDX_MAX 21
 
-	soc {
-		edma@c080000 {
-			status = "okay";
-			qcom,rx_head_buf_size = <8000>;
-			qcom,num_gmac = <2>;
-			gmac0 {
-				qcom,poll_required = <0>;
-				vlan_tag = <0 0x20>;
-			};
-			gmac1 {
-				qcom,poll_required = <0>;
-				vlan_tag = <0 0x1e>;
-			};
-		};
-
-		mdio@90000 {
-			status = "okay";
-		};
-
-		ess-switch@c000000 {
-			status = "okay";
-		};
-
-		ess-psgmii@98000 {
-			status = "okay";
-		};
-
-	};
+#define ALT_PART_NAME_LENGTH 16
+struct per_part_info {
+	char name[ALT_PART_NAME_LENGTH];
+	uint32_t primaryboot;
 };
+
+#define NUM_ALT_PARTITION 8
+
+/* version 2 */
+#define SMEM_DUAL_BOOTINFO_MAGIC_START 0xA3A2A1A0
+#define SMEM_DUAL_BOOTINFO_MAGIC_END 0xB3B2B1B0
+
+struct sbl_if_dualboot_info_type_v2 {
+	uint32_t magic_start;
+	uint32_t age;
+	uint32_t numaltpart;
+	struct per_part_info per_part_entry[NUM_ALT_PARTITION];
+	uint32_t magic_end;
+} __packed;
+
+#endif /* _BOOTCONFIG_H_ */
+

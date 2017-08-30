@@ -1,0 +1,21 @@
+--- a/drivers/platform/Kconfig
++++ b/drivers/platform/Kconfig
+@@ -5,6 +5,8 @@ if MIPS
+ source "drivers/platform/mips/Kconfig"
+ endif
+ 
++source "drivers/platform/msm/Kconfig"
++
+ source "drivers/platform/goldfish/Kconfig"
+ 
+ source "drivers/platform/chrome/Kconfig"
+--- a/drivers/spi/Makefile
++++ b/drivers/spi/Makefile
+@@ -73,6 +73,7 @@ spi-pxa2xx-platform-objs		:= spi-pxa2xx.
+ obj-$(CONFIG_SPI_PXA2XX)		+= spi-pxa2xx-platform.o
+ obj-$(CONFIG_SPI_PXA2XX_PCI)		+= spi-pxa2xx-pci.o
+ obj-$(CONFIG_SPI_QUP)			+= spi-qup.o
++obj-$(CONFIG_SPI_QUP)			+= spi_qsd.o
+ obj-$(CONFIG_SPI_ROCKCHIP)		+= spi-rockchip.o
+ obj-$(CONFIG_SPI_RB4XX)			+= spi-rb4xx.o
+ obj-$(CONFIG_SPI_RSPI)			+= spi-rspi.o

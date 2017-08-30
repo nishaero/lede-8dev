@@ -23,8 +23,8 @@ Changes:
 
 --- a/arch/arm/boot/dts/qcom-ipq4019-ap.dk01.1.dtsi
 +++ b/arch/arm/boot/dts/qcom-ipq4019-ap.dk01.1.dtsi
-@@ -108,5 +108,25 @@
- 		watchdog@b017000 {
+@@ -224,5 +224,25 @@
+ 		usb2: usb2@60f8800 {
  			status = "ok";
  		};
 +

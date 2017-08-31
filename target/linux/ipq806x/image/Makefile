@@ -274,7 +274,7 @@ define Device/Jalapeno
 	BLOCKSIZE := 128k
 	PAGESIZE := 2048
 	BOARD_NAME := Jalapeno
-	DEVICE_TITLE := Jalapeno
+	DEVICE_TITLE := 8devices Jalapeno
 endef
 
 TARGET_DEVICES += AP148 AP148-legacy C2600 D7800 DB149 EA8500 FRITZ4040 R7500 \

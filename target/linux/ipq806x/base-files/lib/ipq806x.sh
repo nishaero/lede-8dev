@@ -29,6 +29,10 @@ ipq806x_board_detect() {
 	*"DB149")
 		name="db149"
 		;;
+	*"Jalapeno v1"|\
+	*"Jalapeno v2")
+		name="jalapeno"
+		;;
 	*"NBG6817")
 		name="nbg6817"
 		;;

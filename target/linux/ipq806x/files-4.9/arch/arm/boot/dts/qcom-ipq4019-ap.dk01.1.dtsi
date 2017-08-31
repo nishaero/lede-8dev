@@ -16,6 +16,7 @@
 
 #include "qcom-ipq4019.dtsi"
 
+
 / {
 	model = "Qualcomm Technologies, Inc. IPQ4019/AP-DK01.1";
 	compatible = "qcom,ipq4019";
@@ -42,14 +43,16 @@
 
 		pinctrl@0x01000000 {
 			mdio_pins: mdio_pinmux {
-				mux_1 {
+				pinmux_1 {
 					pins = "gpio53";
 					function = "mdio1";
-					bias-pull-up;
 				};
-				mux_2 {
+				pinmux_2 {
 					pins = "gpio52";
 					function = "mdc";
+				};
+				pinconf {
+					pins = "gpio52", "gpio53";
 					bias-pull-up;
 				};
 			};
@@ -65,65 +68,38 @@
 			spi_0_pins: spi_0_pinmux {
 				pinmux {
 					function = "blsp_spi0";
-					pins = "gpio54", "gpio55", "gpio56", "gpio57";
+					pins = "gpio55", "gpio56", "gpio57";
 				};
 				pinmux_cs {
 					function = "gpio";
-					pins = "gpio59";
+					pins = "gpio54", "gpio59";
 				};
 				pinconf {
-					pins =  "gpio54", "gpio55", "gpio56", "gpio57";
+					pins =   "gpio55", "gpio56", "gpio57";
 					/*drive-strength = <12>;*/
 					bias-disable;
 				};
 				pinconf_cs {
-					pins = "gpio59";
-					/*drive-strength = <2>;*/
-					/*bias-disable;*/
-					/*output-high;*/
-					bias-pull-up;
+					pins = "gpio54", "gpio59";
+					drive-strength = <2>;
+					bias-disable;
+					output-high;
+					/*bias-pull-up;*/
 				};
 			};
 		};
 
 		blsp_dma: dma@7884000 {
-			status = "disabled";
-		};
-		
-		qcom,sps {
-			compatible = "qcom,msm_sps_4k";
-			qcom,device-type = <3>;
-			qcom,pipe-attr-ee;
+			status = "ok";
 		};
 
 		spi_0: spi@78b5000 {
 			pinctrl-0 = <&spi_0_pins>;
 			pinctrl-names = "default";
 			status = "ok";
-			
-			
-			compatible = "qcom,spi-qup-v2";
-			#address-cells = <1>;
-			#size-cells = <0>;
-			reg-names = "spi_physical", "spi_bam_physical";
-			reg = <0x78b5000 0x600>,
-				<0x7884000 0x23000>;
-			interrupt-names = "spi_irq", "spi_bam_irq";
-			interrupts = <0 95 0>, <0 238 0>;
-			spi-max-frequency = <24000000>;
-			clocks = <&gcc GCC_BLSP1_QUP1_SPI_APPS_CLK>,
-				<&gcc GCC_BLSP1_AHB_CLK>;
-			clock-names = "core_clk", "iface_clk";
-			qcom,infinite-mode = <0>;
-			qcom,use-bam;
-			qcom,bam-consumer-pipe-index = <4>;
-			qcom,bam-producer-pipe-index = <5>;
-			qcom,master-id = <0>;
-			
-			qcom,gpio-cs1 = <&tlmm 59 0>;
-			
-			/*cs-gpios = <&tlmm 54 0>,
-					<&tlmm 59 0>;*/
+
+			cs-gpios = <&tlmm 54 0>,
+					<&tlmm 59 0>;
 
 			mx25l25635e@0 {
 				status = "disabled";
@@ -136,74 +112,25 @@
 				compatible = "mx25l1606e", "n25q128a11";
 				linux,modalias = "m25p80", "mx25l1606e", "n25q128a11";
 				spi-max-frequency = <24000000>;
-				partitions {
-					compatible = "fixed-partitions";
-					#address-cells = <1>;
-					#size-cells = <1>;
-
-					partition0@0 {
-						label = "SBL1";
-						reg = <0x00000000 0x00040000>;
-						read-only;
-					};
-					partition1@40000 {
-						label = "MIBIB";
-						reg = <0x00040000 0x00020000>;
-						read-only;
-					};
-					partition2@60000 {
-						label = "QSEE";
-						reg = <0x00060000 0x00060000>;
-						read-only;
-					};
-					partition3@c0000 {
-						label = "CDT";
-						reg = <0x000c0000 0x00010000>;
-						read-only;
-					};
-					partition4@d0000 {
-						label = "DDRPARAMS";
-						reg = <0x000d0000 0x00010000>;
-						read-only;
-					};
-					partition5@e0000 {
-						label = "APPSBLENV"; /* uboot env*/
-						reg = <0x000e0000 0x00010000>;
-						read-only;
-					};
-					partition5@f0000 {
-						label = "APPSBL"; /* uboot */
-						reg = <0x000f0000 0x00080000>;
-						read-only;
-					};
-					partition5@170000 {
-						label = "ART";
-						reg = <0x00170000 0x00010000>;
-						read-only;
-					};
-
-				};
 			};
 
 			mt29f@1 {
-				status = "disabled";
+				status = "ok";
 				#address-cells = <1>;
 				#size-cells = <0>;
 				compatible = "spinand,mt29f", "w25n01gv";
 				reg = <1>;
 				spi-max-frequency = <24000000>;
-
-				partitions {
-					compatible = "fixed-partitions";
-					#address-cells = <1>;
-					#size-cells = <1>;
-
-					partition0@0 {
-						label = "ubi";
-						reg = <0x00000000 0x08000000>;
-					};
-				};
 			};
+		};
+		
+		counter@4a1000 {
+			compatible = "qcom,qca-gcnt";
+			reg = <0x4a1000 0x4>;
+		};
+		
+		mdio@90000 {
+			status = "okay";
 		};
 		
 		ess-switch@c000000 {
@@ -226,6 +153,54 @@
 
 		watchdog@b017000 {
 			status = "ok";
+		};
+
+		usb3_ss_phy: ssphy@9a000 {
+			status = "ok";
+		};
+
+		usb3_hs_phy: hsphy@a6000 {
+			status = "ok";
+		};
+
+		usb3: usb3@8af8800 {
+			status = "ok";
+		};
+
+		usb2_hs_phy: hsphy@a8000 {
+			status = "ok";
+		};
+
+		usb2: usb2@60f8800 {
+			status = "ok";
+		};
+
+		usb3_ss_phy: ssphy@9a000 {
+			status = "ok";
+		};
+
+		usb3_hs_phy: hsphy@a6000 {
+			status = "ok";
+		};
+
+		usb3: usb3@8af8800 {
+			status = "ok";
+		};
+
+		usb2_hs_phy: hsphy@a8000 {
+			status = "ok";
+		};
+
+		usb2: usb2@60f8800 {
+			status = "ok";
+		};
+		
+		wifi@a000000 {
+			status = "okay";
+		};
+
+		wifi@a800000 {
+			status = "okay";
 		};
 
 		usb3_ss_phy: ssphy@9a000 {

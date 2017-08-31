@@ -17,5 +17,24 @@
 #include "qcom-ipq40xx-ap.jalapeno.dts"
 
 / {
-	model = "Qualcomm Technologies, Inc. IPQ40xx/AP-Jalapeno-v2";
+	model = "8devices Jalapeno v2";
+	
+	soc {
+		pinctrl@0x01000000 {
+			spi_0_pins: spi_0_pinmux {
+				pinmux_cs {
+					pins = "gpio54", "gpio59";
+				};
+				
+				pinconf_cs {
+					pins = "gpio54", "gpio59";
+				};
+			};
+		};
+		
+		spi_0: spi@78b5000 {
+			cs-gpios = <&tlmm 54 0>,
+					   <&tlmm 59 0>;
+		};
+	};
 };

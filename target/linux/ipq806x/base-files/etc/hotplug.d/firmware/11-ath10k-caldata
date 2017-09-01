@@ -51,7 +51,7 @@ case "$FIRMWARE" in
 		/usr/bin/fritz_cal_extract -i 1 -s 0x400 -e 0x207 -l 12064 -o /lib/firmware/$FIRMWARE $(find_mtd_chardev "urlader_config")
 		;;
 	jalapeno)
-		ath10kcal_extract "0:ART" 4096 12064
+		ath10kcal_extract "ART" 4096 12064
 		;;
 	esac
 	;;
@@ -61,7 +61,7 @@ case "$FIRMWARE" in
 		/usr/bin/fritz_cal_extract -i 1 -s 0x400 -e 0x208 -l 12064 -o /lib/firmware/$FIRMWARE $(find_mtd_chardev "urlader_config")
 		;;
 	jalapeno)
-		ath10kcal_extract "0:ART" 20480 12064
+		ath10kcal_extract "ART" 20480 12064
 		;;
 	esac
 	;;

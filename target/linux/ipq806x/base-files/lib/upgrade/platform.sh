@@ -13,6 +13,7 @@ platform_do_upgrade() {
 	ap148 |\
 	ap-dk04.1-c1 |\
 	d7800 |\
+	jalapeno |\
 	nbg6817 |\
 	r7500 |\
 	r7500v2 |\

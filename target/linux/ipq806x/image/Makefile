@@ -273,7 +273,7 @@ define Device/Jalapeno
 	KERNEL_SIZE := 4048k
 	BLOCKSIZE := 128k
 	PAGESIZE := 2048
-	BOARD_NAME := Jalapeno
+	BOARD_NAME := jalapeno
 	DEVICE_TITLE := 8devices Jalapeno
 endef
 

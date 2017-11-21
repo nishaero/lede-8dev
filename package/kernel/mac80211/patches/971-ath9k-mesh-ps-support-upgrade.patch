@@ -1,0 +1,166 @@
+--- a/drivers/net/wireless/ath/ath9k/ath9k.h
++++ b/drivers/net/wireless/ath/ath9k/ath9k.h
+@@ -987,6 +987,7 @@ void ath_ant_comb_scan(struct ath_softc
+ #define PS_WAIT_FOR_TX_ACK        BIT(3)
+ #define PS_BEACON_SYNC            BIT(4)
+ #define PS_WAIT_FOR_ANI           BIT(5)
++#define PS_MAC80211_CTL           BIT(6)
+ 
+ #define ATH9K_NUM_CHANCTX  2 /* supports 2 operating channels */
+ 
+--- a/drivers/net/wireless/ath/ath9k/hw.c
++++ b/drivers/net/wireless/ath/ath9k/hw.c
+@@ -2339,16 +2339,28 @@ void ath9k_hw_beaconinit(struct ath_hw *
+ }
+ EXPORT_SYMBOL(ath9k_hw_beaconinit);
+ 
++/**
++ * ath9k_hw_set_sta_beacon_timers
++ *
++ * in mesh mode overwriting AR_NEXT_TBTT_TIMER and setting AR_TBTT_TIMER_EN
++ * would shift the own TBTT
++ */
++
+ void ath9k_hw_set_sta_beacon_timers(struct ath_hw *ah,
+ 				    const struct ath9k_beacon_state *bs)
+ {
+ 	u32 nextTbtt, beaconintval, dtimperiod, beacontimeout;
++	u32 ar_timer_mode = AR_DTIM_TIMER_EN | AR_TIM_TIMER_EN;
+ 	struct ath9k_hw_capabilities *pCap = &ah->caps;
+ 	struct ath_common *common = ath9k_hw_common(ah);
+ 
+ 	ENABLE_REGWRITE_BUFFER(ah);
+ 
+-	REG_WRITE(ah, AR_NEXT_TBTT_TIMER, bs->bs_nexttbtt);
++	/*REG_WRITE(ah, AR_NEXT_TBTT_TIMER, bs->bs_nexttbtt);*/
++
++	if (ah->opmode != NL80211_IFTYPE_MESH_POINT)
++		REG_WRITE(ah, AR_NEXT_TBTT_TIMER, TU_TO_USEC(bs->bs_nexttbtt));
++
+ 	REG_WRITE(ah, AR_BEACON_PERIOD, bs->bs_intval);
+ 	REG_WRITE(ah, AR_DMA_BEACON_PERIOD, bs->bs_intval);
+ 
+@@ -2398,9 +2410,14 @@ void ath9k_hw_set_sta_beacon_timers(stru
+ 
+ 	REGWRITE_BUFFER_FLUSH(ah);
+ 
+-	REG_SET_BIT(ah, AR_TIMER_MODE,
++	/*REG_SET_BIT(ah, AR_TIMER_MODE,
+ 		    AR_TBTT_TIMER_EN | AR_TIM_TIMER_EN |
+-		    AR_DTIM_TIMER_EN);
++		    AR_DTIM_TIMER_EN);*/
++
++	if (ah->opmode != NL80211_IFTYPE_MESH_POINT)
++		ar_timer_mode |= AR_TBTT_TIMER_EN;
++
++	REG_SET_BIT(ah, AR_TIMER_MODE, ar_timer_mode);
+ 
+ 	/* TSF Out of Range Threshold */
+ 	REG_WRITE(ah, AR_TSFOOR_THRESHOLD, bs->bs_tsfoor_threshold);
+--- a/drivers/net/wireless/ath/ath9k/main.c
++++ b/drivers/net/wireless/ath/ath9k/main.c
+@@ -162,7 +162,8 @@ void ath9k_ps_restore(struct ath_softc *
+ 				     PS_WAIT_FOR_CAB |
+ 				     PS_WAIT_FOR_PSPOLL_DATA |
+ 				     PS_WAIT_FOR_TX_ACK |
+-				     PS_WAIT_FOR_ANI))) {
++				     PS_WAIT_FOR_ANI |
++				     PS_MAC80211_CTL))) {
+ 		mode = ATH9K_PM_NETWORK_SLEEP;
+ 		if (ath9k_hw_btcoex_is_enabled(sc->sc_ah))
+ 			ath9k_btcoex_stop_gen_timer(sc);
+@@ -1379,7 +1380,8 @@ static void ath9k_enable_ps(struct ath_s
+ 		return;
+ 
+ 	sc->ps_enabled = true;
+-	if (!(ah->caps.hw_caps & ATH9K_HW_CAP_AUTOSLEEP)) {
++	if (!(ah->caps.hw_caps & ATH9K_HW_CAP_AUTOSLEEP) &&
++	     ah->opmode != NL80211_IFTYPE_MESH_POINT) {
+ 		if ((ah->imask & ATH9K_INT_TIM_TIMER) == 0) {
+ 			ah->imask |= ATH9K_INT_TIM_TIMER;
+ 			ath9k_hw_set_interrupts(ah);
+@@ -1443,7 +1445,7 @@ static int ath9k_config(struct ieee80211
+ 	 * We just prepare to enable PS. We have to wait until our AP has
+ 	 * ACK'd our null data frame to disable RX otherwise we'll ignore
+ 	 * those ACKs and end up retransmitting the same null data frames.
+-	 * IEEE80211_CONF_CHANGE_PS is only passed by mac80211 for STA mode.
++	 * IEEE80211_CONF_CHANGE_PS is passed by mac80211 for STA or mesh mode.
+ 	 */
+ 	if (changed & IEEE80211_CONF_CHANGE_PS) {
+ 		unsigned long flags;
+@@ -2666,6 +2668,65 @@ static int ath9k_get_txpower(struct ieee
+ 	return 0;
+ }
+ 
++#ifdef CPTCFG_MAC80211_MESH
++
++static void ath9k_mesh_wakeup_set(struct ath_softc *sc, u64 nexttbtt)
++{
++	struct ath_hw *ah = sc->sc_ah;
++	struct ath9k_beacon_state bs;
++	u32 nexttbtttu = TSF_TO_TU(nexttbtt >> 32, nexttbtt);
++
++	memset(&bs, 0, sizeof(bs));
++	bs.bs_nexttbtt = nexttbtttu;
++	bs.bs_nextdtim = nexttbtttu;
++	/* arbitrary high values to avoid frequent wakeups */
++	bs.bs_intval = 1000;
++	bs.bs_dtimperiod = 4000;
++	bs.bs_sleepduration = 1000;
++
++	ath9k_hw_set_sta_beacon_timers(ah, &bs);
++}
++
++static void ath9k_mesh_ps_doze(struct ieee80211_hw *hw, u64 nexttbtt)
++{
++	struct ath_softc *sc = hw->priv;
++	struct ath_hw *ah = sc->sc_ah;
++	unsigned long flags;
++
++	ath9k_ps_wakeup(sc);
++	spin_lock_irqsave(&sc->sc_pm_lock, flags);
++	/* in mesh mode mac80211 checks beacons and CAB */
++	sc->ps_flags &= ~(PS_WAIT_FOR_BEACON |
++			  PS_WAIT_FOR_CAB |
++			  PS_MAC80211_CTL);
++	spin_unlock_irqrestore(&sc->sc_pm_lock, flags);
++
++	if (nexttbtt)
++		ath9k_mesh_wakeup_set(sc, nexttbtt);
++
++	if (!(ah->caps.hw_caps & ATH9K_HW_CAP_AUTOSLEEP) &&
++            !nexttbtt != !(ah->imask & ATH9K_INT_TIM_TIMER)) {
++                ah->imask ^= ATH9K_INT_TIM_TIMER;
++                ath9k_hw_set_interrupts(ah);
++        }
++
++	ath9k_ps_restore(sc);
++}
++
++static void ath9k_mesh_ps_wakeup(struct ieee80211_hw *hw)
++{
++	struct ath_softc *sc = hw->priv;
++	unsigned long flags;
++
++	ath9k_ps_wakeup(sc);
++	spin_lock_irqsave(&sc->sc_pm_lock, flags);
++	sc->ps_flags |= PS_MAC80211_CTL;
++	spin_unlock_irqrestore(&sc->sc_pm_lock, flags);
++	ath9k_ps_restore(sc);
++}
++
++#endif
++
+ struct ieee80211_ops ath9k_ops = {
+ 	.tx 		    = ath9k_tx,
+ 	.start 		    = ath9k_start,
+@@ -2714,4 +2775,9 @@ struct ieee80211_ops ath9k_ops = {
+ 	.sw_scan_complete   = ath9k_sw_scan_complete,
+ 	.get_txpower        = ath9k_get_txpower,
+ 	.wake_tx_queue      = ath9k_wake_tx_queue,
++
++#ifdef CPTCFG_MAC80211_MESH
++	.mesh_ps_doze	    = ath9k_mesh_ps_doze,
++	.mesh_ps_wakeup	    = ath9k_mesh_ps_wakeup,
++#endif
+ };

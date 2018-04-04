@@ -1,6 +1,93 @@
 --- a/net/mac80211/mesh_sync.c
 +++ b/net/mac80211/mesh_sync.c
-@@ -167,6 +167,164 @@ static void mesh_sync_offset_adjust_tsf(
+@@ -59,12 +59,19 @@ void mesh_sync_adjust_tsf(struct ieee802
+ 	if (ifmsh->sync_offset_clockdrift_max < beacon_int_fraction) {
+ 		msync_dbg(sdata, "TSF : max clockdrift=%lld; adjusting\n",
+ 			  (long long) ifmsh->sync_offset_clockdrift_max);
++		/*Debug Messages*/
++		/*printk("MESH0: TSF : max clockdrift=%lld; adjusting\n",
++			  (long long) ifmsh->sync_offset_clockdrift_max);*/
+ 		tsfdelta = -ifmsh->sync_offset_clockdrift_max;
+ 		ifmsh->sync_offset_clockdrift_max = 0;
+ 	} else {
+ 		msync_dbg(sdata, "TSF : max clockdrift=%lld; adjusting by %llu\n",
+ 			  (long long) ifmsh->sync_offset_clockdrift_max,
+ 			  (unsigned long long) beacon_int_fraction);
++		/*Debug messages*/
++		/*printk("MESH0: TSF : max clockdrift=%lld; adjusting by %llu\n",
++			  (long long) ifmsh->sync_offset_clockdrift_max,
++			  (unsigned long long) beacon_int_fraction);*/
+ 		tsfdelta = -beacon_int_fraction;
+ 		ifmsh->sync_offset_clockdrift_max -= beacon_int_fraction;
+ 	}
+@@ -99,11 +106,16 @@ static void mesh_sync_offset_rx_bcn_pres
+ 	if (elems->mesh_config && mesh_peer_tbtt_adjusting(elems)) {
+ 		msync_dbg(sdata, "STA %pM : is adjusting TBTT\n",
+ 			  sta->sta.addr);
++		/*Debug messages*/
++		/*printk("MESH0: STA %pM : is adjusting TBTT\n",
++			  sta->sta.addr);*/
+ 		return;
+ 	}
+ 
+ 	/* Timing offset calculation (see 13.13.2.2.2) */
+ 	t_t = le64_to_cpu(mgmt->u.beacon.timestamp);
++	/*Debug Messages*/
++	/*printk("MESH0: t_t value :=%lld, t-r value= %lld, t_offsett value=%lld\n",t_t,t_r, t_t-t_r);*/
+ 	sta->mesh->t_offset = t_t - t_r;
+ 
+ 	if (test_sta_flag(sta, WLAN_STA_TOFFSET_KNOWN)) {
+@@ -113,13 +125,21 @@ static void mesh_sync_offset_rx_bcn_pres
+ 			  sta->sta.addr, (long long) sta->mesh->t_offset,
+ 			  (long long) sta->mesh->t_offset_setpoint,
+ 			  (long long) t_clockdrift);
+-
++		/*Debug messages*/
++		/*printk("MESH0: STA %pM : t_offset=%lld, t_offset_setpoint=%lld, t_clockdrift=%lld\n",
++			  sta->sta.addr, (long long) sta->mesh->t_offset,
++			  (long long) sta->mesh->t_offset_setpoint,
++			  (long long) t_clockdrift);*/
+ 		if (t_clockdrift > TOFFSET_MAXIMUM_ADJUSTMENT ||
+ 		    t_clockdrift < -TOFFSET_MAXIMUM_ADJUSTMENT) {
+ 			msync_dbg(sdata,
+ 				  "STA %pM : t_clockdrift=%lld too large, setpoint reset\n",
+ 				  sta->sta.addr,
+ 				  (long long) t_clockdrift);
++			/*Debug Messages*/
++			/*printk("MESH0: STA %pM : t_clockdrift=%lld too large, setpoint reset\n",
++				  sta->sta.addr,
++				  (long long) t_clockdrift);*/
+ 			clear_sta_flag(sta, WLAN_STA_TOFFSET_KNOWN);
+ 			return;
+ 		}
+@@ -135,6 +155,10 @@ static void mesh_sync_offset_rx_bcn_pres
+ 			  "STA %pM : offset was invalid, t_offset=%lld\n",
+ 			  sta->sta.addr,
+ 			  (long long) sta->mesh->t_offset);
++		/*Debug Messages*/
++		/*printk("MESH0: STA %pM : offset was invalid, t_offset=%lld\n",
++			  sta->sta.addr,
++			  (long long) sta->mesh->t_offset);*/
+ 	}
+ }
+ 
+@@ -157,16 +181,188 @@ static void mesh_sync_offset_adjust_tsf(
+ 		msync_dbg(sdata,
+ 			  "TSF : kicking off TSF adjustment with clockdrift_max=%lld\n",
+ 			  ifmsh->sync_offset_clockdrift_max);
++		/*Debug Printk statements*/
++		/*printk("MESH0: TSF : kicking off TSF adjustment with clockdrift_max=%lld\n",
++			  ifmsh->sync_offset_clockdrift_max);*/
+ 		set_bit(MESH_WORK_DRIFT_ADJUST, &ifmsh->wrkq_flags);
+ 	} else {
+ 		msync_dbg(sdata,
+ 			  "TSF : max clockdrift=%lld; too small to adjust\n",
+ 			  (long long)ifmsh->sync_offset_clockdrift_max);
++		/*Debug Printk statements*/
++		/*printk("MESH0: TSF : max clockdrift=%lld; too small to adjust\n",
++			  (long long)ifmsh->sync_offset_clockdrift_max);*/
+ 		ifmsh->sync_offset_clockdrift_max = 0;
+ 	}
  	spin_unlock_bh(&ifmsh->sync_offset_lock);
  }
  
@@ -20,7 +107,10 @@
 +{
 +	u32 offset;
 +	/*u64 tmp = abs64(t_offset);*/
-+	u64 tmp = t_offset;
++	u64 tmp = abs(t_offset);
++
++	/*Debug Prink K remove me*/
++	/*printk("MESH0: t_offset on abs values of abs: %lld\n", abs(t_offset));*/
 +
 +	/* do_div only for unsigned values */
 +	offset = do_div(tmp, bi_min);
@@ -85,9 +175,15 @@
 +		offset_min = offset;
 +		msync_dbg(sdata, "offset %pM - local STA %dus\n",
 +			  staa->sta.addr, offset_min);
++		/*Debug Messages*/
++		/*printk("MESH0: offset %pM - local STA %dus\n",
++			  staa->sta.addr, offset_min);*/
 +	} else if (sta_next) {
 +		msync_dbg(sdata, "offset %pM - %pM %dus\n",
 +			  staa->sta.addr, sta_next->sta.addr, offset_min);
++		/*Debug Messages*/
++		/*printk("MESH0: offset %pM - %pM %dus\n",
++			  staa->sta.addr, sta_next->sta.addr, offset_min);*/
 +	}
 +
 +	return offset_min;
@@ -141,7 +237,6 @@
 +	} else {
 +		msync_dbg(sdata, "the steady node is %pM\n",
 +			  sta_steady->sta.addr);
-+
 +		if (local_offset_min < -10000) {
 +			msync_dbg(sdata, "adjusting towards %pM by %dus\n",
 +				  sta_next->sta.addr, local_offset_min);
@@ -165,7 +260,7 @@
  static const struct sync_method sync_methods[] = {
  	{
  		.method = IEEE80211_SYNC_METHOD_NEIGHBOR_OFFSET,
-@@ -175,6 +333,13 @@ static const struct sync_method sync_met
+@@ -175,6 +371,13 @@ static const struct sync_method sync_met
  			.adjust_tsf = &mesh_sync_offset_adjust_tsf,
  		}
  	},
